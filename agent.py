@@ -4,28 +4,35 @@ from llm_reasoner import reason_from_logs
 from log_parser import extract_error
 from fixer import apply_fix
 
+CONFIDENCE_THRESHOLD = 0.7
+
 def agent_think(log_text):
     print("🧠 Agent started")
 
-    # ---- 1️⃣ Try LLM first ----
+    # ---- Try LLM reasoning ----
     try:
-        print("🤖 Trying LLM reasoning...")
         reasoning = reason_from_logs(log_text)
         decision = json.loads(reasoning)
 
+        confidence = decision.get("confidence", 0)
         fix_cmd = decision.get("fix_command")
-        if fix_cmd:
-            print(f"🔧 LLM suggested fix: {fix_cmd}")
+        explanation = decision.get("explanation", "")
+
+        print(f"🤖 LLM confidence: {confidence}")
+        print(f"📝 Explanation: {explanation}")
+
+        if fix_cmd and confidence >= CONFIDENCE_THRESHOLD:
+            print(f"🔧 Applying LLM fix: {fix_cmd}")
             os.system(fix_cmd)
             return
-        else:
-            print("⚠️ LLM gave no fix")
+
+        print("⚠️ Confidence too low or no fix provided")
 
     except Exception as e:
-        print("⚠️ LLM failed, falling back to rules:", e)
+        print("⚠️ LLM failed:", e)
 
-    # ---- 2️⃣ Fallback: rule-based fix ----
-    print("🛟 Using rule-based fallback")
+    # ---- Fallback ----
+    print("🛟 Falling back to rule-based fix")
     error_type = extract_error(log_text)
     apply_fix(error_type)
 
