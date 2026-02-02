@@ -9,34 +9,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt || true
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt || true
 
-    - name: Run application (may fail)
-      id: run_app
-      run: |
-        python app.py
-      continue-on-error: true
+      - name: Run application (expected to fail)
+        id: run_app
+        continue-on-error: true
+        run: |
+          python app.py 2> error.log
 
-    - name: Capture logs
-      if: failure()
-      run: |
-        echo "ModuleNotFoundError: No module named 'requests'" > sample_logs.txt
+      - name: Capture logs
+        if: failure()
+        run: |
+          cat error.log > sample_logs.txt
 
-    - name: Run Self-Healing AI Agent
-      if: failure()
-      run: |
-        python agent.py
+      - name: Run Self-Healing LLM Agent
+        if: failure()
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python agent.py
 
-    - name: Re-run application after fix
-      run: |
-        python app.py
+      - name: Re-run application after fix
+        run: |
+          python app.py
